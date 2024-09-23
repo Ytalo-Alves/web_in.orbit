@@ -1,7 +1,6 @@
-function App() {
-  return (
-      <h1>Hello Word!!!</h1>
-  );
-}
+import './index.css'
+import { Empty } from './screens/empty'
 
-export default App;
+export function App() {
+  return <Empty />
+}
