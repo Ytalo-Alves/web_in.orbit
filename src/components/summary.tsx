@@ -1,22 +1,45 @@
 import { CheckCircle2, Plus } from "lucide-react";
 import { Button } from "./ui/button";
 import { DialogTrigger } from "./ui/dialog";
-import  InOrbit  from '../assets/in.orbit-logo.svg'
+import InOrbit from '../assets/in.orbit-logo.svg'
 import { Progress, ProgressIndicator } from "./ui/progress-bar";
 import { Separator } from "./ui/separator";
-import { OutlineButton } from "./ui/outline-button";
+import { useQuery } from "@tanstack/react-query";
+import { getSummary } from "../http/get-summary";
+import dayjs from "dayjs";
+import ptBR from 'dayjs/locale/pt-BR'
+import { PendingGoals } from "./peding-goals";
 
-export function Summary(){
-  return(
+dayjs.locale(ptBR)
+
+export function Summary() {
+  const { data } = useQuery({
+    queryKey: ['summary'],
+    queryFn: getSummary,
+    staleTime: 1000 * 60,
+  })
+
+  if (!data) {
+    return null
+  }
+
+
+  const firstDayOfWeek = dayjs().startOf('week').format('D MMM')
+  const LastDayOfWeek = dayjs().endOf('week').format('D MMM')
+
+
+  const completedPercentage = Math.round(data?.completed * 100 / data?.total)
+
+  return (
     <div className="py-10 max-w-[600px] px-5 mx-auto flex flex-col gap-6">
       <div className="flex items-center justify-between">
-      <div className="flex gap-3 items-center">
-        <img src={InOrbit} alt="" />
-        <span className="text-lg font-semibold">05 a 10 de agosto</span>
+        <div className="flex gap-3 items-center">
+          <img src={InOrbit} alt="" />
+          <span className="text-lg font-semibold">{firstDayOfWeek} - {LastDayOfWeek}</span>
         </div>
         <DialogTrigger>
           <Button size="sm">
-            <Plus className="size-4"/>
+            <Plus className="size-4" />
             Cadastrar meta
           </Button>
         </DialogTrigger>
@@ -24,66 +47,53 @@ export function Summary(){
 
       <div className="flex flex-col gap-3">
         <Progress max={15} value={10} >
-          <ProgressIndicator style={{width: '53%'}}/>
+          <ProgressIndicator style={{ width: `${completedPercentage}%` }} />
         </Progress>
       </div>
 
       <div className="flex items-center justify-between text-sm text-zinc-400">
-        <span>Você completou <span className="text-zinc-100">8</span> de <span className="text-zinc-100">15</span> metas nessa semana.</span>
-        <span>53%</span>
+        <span>Você completou <span className="text-zinc-100">{data?.completed}</span> de <span className="text-zinc-100">{data?.total}</span> metas nessa semana.</span>
+        <span>{completedPercentage}%</span>
       </div>
 
-      <Separator/>
+      <Separator />
 
-      <div className="flex flex-wrap gap-3">
-        <OutlineButton><Plus className="size-4 text-zinc-400"/>Meditar</OutlineButton>
-        <OutlineButton><Plus className="size-4 text-zinc-400"/>Academia</OutlineButton>
-        <OutlineButton><Plus className="size-4 text-zinc-400"/>Andar de Bicicleta</OutlineButton>
-        <OutlineButton><Plus className="size-4 text-zinc-400"/>Nadar</OutlineButton>
-        <OutlineButton><Plus className="size-4 text-zinc-400"/>Correr</OutlineButton>
-        <OutlineButton><Plus className="size-4 text-zinc-400"/>Estudar</OutlineButton>
-        <OutlineButton><Plus className="size-4 text-zinc-400"/>Ler</OutlineButton>
-      </div>
+      <PendingGoals/>
 
       <div className="flex flex-col gap-4">
         <h2 className="text-xl font-medium">
           Sua semana
         </h2>
 
-        <div className="flex flex-col gap-4">
-          <h3 className="font-medium">Domingo <span className="text-zinc-400 text-xs">(10 de agosto)</span></h3>
+        {Object.entries(data.goalsPerDay).map(([date, goals]) => {
 
-          <ul className="flex flex-col gap-3">
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="size-4 text-pink-500"/>
-              <span className="text-sm text-zinc-400">Você completou “<span className="font-semibold text-zinc-100">Acordar cedo</span>” às <span className="font-semibold text-zinc-100">08:13h</span></span>
-            </li>
+          const weekDay = dayjs(date).format('dddd')
+          const formattedDate = dayjs(date).format('D [de] MMMM')
 
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="size-4 text-pink-500"/>
-              <span className="text-sm text-zinc-400">Você completou “<span className="font-semibold text-zinc-100">Acordar cedo</span>” às <span className="font-semibold text-zinc-100">08:13h</span></span>
-            </li>
+          return (
+            <div className="flex flex-col gap-4">
+              <h3 className="font-medium"><span>{weekDay}</span><span className="text-zinc-400 text-xs"> ({formattedDate})</span></h3>
 
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="size-4 text-pink-500"/>
-              <span className="text-sm text-zinc-400">Você completou “<span className="font-semibold text-zinc-100">Acordar cedo</span>” às <span className="font-semibold text-zinc-100">08:13h</span></span>
-            </li>
-          </ul>
-        </div>
+              <ul className="flex flex-col gap-3">
+                {goals.map(goal => {
+
+                  const time = dayjs(goal.completedAt).format('HH:mm')
+
+                  return (
+                    <li key={goal.id} className="flex items-center gap-2">
+                      <CheckCircle2 className="size-4 text-pink-500" />
+                      <span className="text-sm text-zinc-400">Você completou “<span className="font-semibold text-zinc-100">{goal.title}</span>” às <span className="font-semibold text-zinc-100">{time} h</span></span>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          )
+        })}
+
       </div>
 
-      <div className="flex flex-col gap-4">
-          <h3 className="font-medium">Segunda-Feira <span className="text-zinc-400 text-xs">(11 de agosto)</span></h3>
+    </div>
 
-          <ul className="flex flex-col gap-3">
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="size-4 text-pink-500"/>
-              <span className="text-sm text-zinc-400">Você completou “<span className="font-semibold text-zinc-100">Acordar cedo</span>” às <span className="font-semibold text-zinc-100">08:13h</span></span>
-            </li>
-
-          </ul>
-        </div>
-      </div>
-      
   )
 }
