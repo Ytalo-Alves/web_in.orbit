@@ -1,11 +1,22 @@
-export async function createGoalCompletion(goalId: string){
-  await fetch('http://localhost:3333/completions', {
-    method : 'POST',
+export interface CrateGoalRequest {
+  title: string
+  desiredWeeklyFrequency: number
+} 
+
+export async function createGoals({title, desiredWeeklyFrequency}: CrateGoalRequest): Promise<void>{
+
+  const  response = await fetch('http://localhost:3333/goals', {
+    method: 'POST',
     headers: {
-      'content-type':'application/json'
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      goalId,
-    })
+      title,
+      desiredWeeklyFrequency
+    }),
   })
+
+  if(!response.ok){
+    throw new Error('Error while creating the goal')
+  }
 }

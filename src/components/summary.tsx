@@ -1,43 +1,39 @@
 import { CheckCircle2, Plus } from "lucide-react";
+import Logo from "../assets/InOrbitIcon.svg";
+import { DialogTrigger } from "@radix-ui/react-dialog";
 import { Button } from "./ui/button";
-import { DialogTrigger } from "./ui/dialog";
-import InOrbit from '../assets/in.orbit-logo.svg'
 import { Progress, ProgressIndicator } from "./ui/progress-bar";
 import { Separator } from "./ui/separator";
-import { useQuery } from "@tanstack/react-query";
-import { getSummary } from "../http/get-summary";
+import type { GetSummaryResponse } from "../http/get-summary";
 import dayjs from "dayjs";
-import ptBR from 'dayjs/locale/pt-BR'
-import { PendingGoals } from "./peding-goals";
+import ptBR from "dayjs/locale/pt-BR";
+import { PendingGoals } from "./pending-goals";
 
-dayjs.locale(ptBR)
+dayjs.locale(ptBR);
 
-export function Summary() {
-  const { data } = useQuery({
-    queryKey: ['summary'],
-    queryFn: getSummary,
-    staleTime: 1000 * 60,
-  })
+interface WeeklySummaryProps {
+  summary: GetSummaryResponse["summary"];
+}
 
-  if (!data) {
-    return null
-  }
+export function Summary({ summary }: WeeklySummaryProps) {
+  const fromDate = dayjs().startOf("week").format("D[ de ]MMM");
+  const toDate = dayjs().endOf("week").format("D[ de ]MMM");
 
-
-  const firstDayOfWeek = dayjs().startOf('week').format('D MMM')
-  const LastDayOfWeek = dayjs().endOf('week').format('D MMM')
-
-
-  const completedPercentage = Math.round(data?.completed * 100 / data?.total)
+  const completedPercentage = Math.round(
+    (summary.completed * 100) / summary.total
+  );
 
   return (
-    <div className="py-10 max-w-[600px] px-5 mx-auto flex flex-col gap-6">
+    <main className="max-w-[540px] py-10 px-5 mx-auto flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <div className="flex gap-3 items-center">
-          <img src={InOrbit} alt="" />
-          <span className="text-lg font-semibold">{firstDayOfWeek} - {LastDayOfWeek}</span>
+        <div className="flex items-center gap-3">
+          <img src={Logo} alt="" />
+          <span className="text-lg font-semibold">
+            {fromDate} - {toDate}
+          </span>
         </div>
-        <DialogTrigger>
+
+        <DialogTrigger asChild>
           <Button size="sm">
             <Plus className="size-4" />
             Cadastrar meta
@@ -46,54 +42,60 @@ export function Summary() {
       </div>
 
       <div className="flex flex-col gap-3">
-        <Progress max={15} value={10} >
+        <Progress value={summary.completed} max={summary.total}>
           <ProgressIndicator style={{ width: `${completedPercentage}%` }} />
         </Progress>
-      </div>
 
-      <div className="flex items-center justify-between text-sm text-zinc-400">
-        <span>Você completou <span className="text-zinc-100">{data?.completed}</span> de <span className="text-zinc-100">{data?.total}</span> metas nessa semana.</span>
-        <span>{completedPercentage}%</span>
+        <div className="flex items-center justify-between text-xs text-zinc-400">
+          <span>
+            Você completou{" "}
+            <span className="text-zinc-100">{summary.completed}</span> de{" "}
+            <span className="text-zinc-100">{summary.total}</span> metas nessa
+            semana.
+          </span>
+          <span>{completedPercentage}%</span>
+        </div>
       </div>
 
       <Separator />
 
-      <PendingGoals/>
+      <PendingGoals />
 
-      <div className="flex flex-col gap-4">
-        <h2 className="text-xl font-medium">
-          Sua semana
-        </h2>
+      <div className="space-y-6">
+        <h2 className="text-xl font-medium">Sua semana</h2>
 
-        {Object.entries(data.goalsPerDay).map(([date, goals]) => {
+        {summary?.goalsPerDay &&
+          Object.entries(summary.goalsPerDay).map(([date, goals]) => {
+            const weekDay = dayjs(date).format("dddd");
+            const parsedDate = dayjs(date).format("D[ de ]MMM");
 
-          const weekDay = dayjs(date).format('dddd')
-          const formattedDate = dayjs(date).format('D [de] MMMM')
+            return (
+              <div className="space-y-4" key={date}>
+                <h3 className="font-medium capitalize">
+                  {weekDay}{" "}
+                  <span className="text-zinc-400 text-xs">({parsedDate})</span>
+                </h3>
 
-          return (
-            <div className="flex flex-col gap-4">
-              <h3 className="font-medium"><span>{weekDay}</span><span className="text-zinc-400 text-xs"> ({formattedDate})</span></h3>
+                <ul className="space-y-3">
+                  {goals?.map((goal) => {
+                    const parsedTime = dayjs(goal.createdAt).format("HH:mm[h]");
 
-              <ul className="flex flex-col gap-3">
-                {goals.map(goal => {
-
-                  const time = dayjs(goal.completedAt).format('HH:mm')
-
-                  return (
-                    <li key={goal.id} className="flex items-center gap-2">
-                      <CheckCircle2 className="size-4 text-pink-500" />
-                      <span className="text-sm text-zinc-400">Você completou “<span className="font-semibold text-zinc-100">{goal.title}</span>” às <span className="font-semibold text-zinc-100">{time} h</span></span>
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
-          )
-        })}
-
+                    return (
+                      <li className="flex items-center gap-2" key={goal.id}>
+                        <CheckCircle2 className="size-4 text-pink-500" />
+                        <span className="text-sm text-zinc-400">
+                          Você completou "
+                          <span className="text-zinc-100">{goal.title}</span>"
+                          às <span className="text-zinc-100">{parsedTime}</span>
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            );
+          })}
       </div>
-
-    </div>
-
-  )
+    </main>
+  );
 }
